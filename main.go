@@ -47,17 +47,18 @@ func addRoutes(r *gin.Engine) {
 		}
 		defer tx.Rollback()
 
-		// var gridIndex *int
-		// if request.Method == "grid" {
-		// 	gridIndex = new(int)
-		// }
+		var gridIndex *int
+		if request.Method == "grid" {
+			gridIndex = new(int)
+		}
 
 		var sweepID int64
 		if err := tx.Get(&sweepID, `
 		INSERT INTO sweep (
+			gridIndex,
 			Metadata
-		) VALUES ($1) returning id
-		`, request.Metadata); err != nil {
+		) VALUES ($1, $2) returning id
+		`, gridIndex, request.Metadata); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
@@ -122,7 +123,7 @@ func addRoutes(r *gin.Engine) {
 			})
 		} else {
 			var sweep struct {
-				GridIndex      pq.Int32Array
+				GridIndex      *int64
 				ParametersJSON string
 			}
 			if err := tx.Get(&sweep, `
@@ -159,11 +160,10 @@ func addRoutes(r *gin.Engine) {
 				for i, key := range parameterNames {
 					limits[i] = len(parameters[key])
 				}
-				panic("To do")
-				// parameterIndices := chooseNth(int(*sweep.GridIndex), limits)
-				// for i, key := range parameterNames {
-				// 	choices[key] = parameterIndices[i]
-				// }
+				parameterIndices := chooseNth(int(*sweep.GridIndex), limits)
+				for i, key := range parameterNames {
+					choices[key] = parameterIndices[i]
+				}
 			}
 			chosenParameters := make(map[string]json.RawMessage)
 			for key, choice := range choices {
