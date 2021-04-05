@@ -22,6 +22,8 @@ func _chooseNth(n *int, choices []int, limits []int) {
 
 func chooseNth(n int, limits []int) []int {
 	choices := make([]int, len(limits))
-	_chooseNth(&n, choices, limits)
+	for n > 0 {
+		_chooseNth(&n, choices, limits)
+	}
 	return choices
 }

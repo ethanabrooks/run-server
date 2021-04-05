@@ -154,7 +154,6 @@ func addRoutes(r *gin.Engine) {
 			}
 
 			choices := make(map[string]int)
-			fmt.Println(*sweep.GridIndex)
 			if sweep.GridIndex == nil {
 				for key, values := range parameters {
 					choices[key] = rand.Intn(len(values))
