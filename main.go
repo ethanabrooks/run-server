@@ -186,17 +186,18 @@ func addRoutes(r *gin.Engine) {
 				chosenParameters[key] = parameters[key][choice]
 			}
 
-			if err := tx.Commit(); err != nil {
-				c.AbortWithError(http.StatusInternalServerError, err)
-				return
-			}
-
 			c.JSON(200, gin.H{
 				"RunID":      runID,
 				"Parameters": chosenParameters,
 			})
 
 		}
+
+		if err := tx.Commit(); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
 	})
 	r.POST("/log-document", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
