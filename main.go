@@ -47,6 +47,11 @@ func addRoutes(r *gin.Engine) {
 		}
 		defer tx.Rollback()
 
+		// var gridIndex *int
+		// if request.Method == "grid" {
+		// 	gridIndex = new(int)
+		// }
+
 		var sweepID int64
 		if err := tx.Get(&sweepID, `
 		INSERT INTO sweep (
@@ -142,24 +147,30 @@ func addRoutes(r *gin.Engine) {
 				return
 			}
 
-			var parameterNames []string
-			for name := range parameters {
-				parameterNames = append(parameterNames, name)
-			}
-			sort.Strings(parameterNames)
-
-			chosenParameters := make(map[string]json.RawMessage)
-
-			if sweep.Method == "grid" {
-				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("not implemented"))
-				return
-			} else if sweep.Method == "random" {
+			choices := make(map[string]int)
+			if sweep.GridIndex == nil {
 				for key, values := range parameters {
-					chosenParameters[key] = values[rand.Intn(len(values))]
+					choices[key] = rand.Intn(len(values))
 				}
 			} else {
-				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("invalid method %q", sweep.Method))
-				return
+				var parameterNames []string
+				for name := range parameters {
+					parameterNames = append(parameterNames, name)
+				}
+				sort.Strings(parameterNames)
+				limits := make([]int, len(parameters))
+				for i, key := range parameterNames {
+					limits[i] = len(parameters[key])
+				}
+				panic("To do")
+				// parameterIndices := chooseNth(int(*sweep.GridIndex), limits)
+				// for i, key := range parameterNames {
+				// 	choices[key] = parameterIndices[i]
+				// }
+			}
+			chosenParameters := make(map[string]json.RawMessage)
+			for key, choice := range choices {
+				chosenParameters[key] = parameters[key][choice]
 			}
 
 			if err := tx.Commit(); err != nil {

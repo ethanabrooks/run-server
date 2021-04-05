@@ -108,4 +108,28 @@ func TestMain(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, response.LogID, int64(0))
 	}
+	{
+		limits := []int{2, 1}
+		require.Equal(t, []int{1, 0}, chooseNth(1, limits))
+	}
+	{
+		limits := []int{2, 2}
+		require.Equal(t, []int{0, 0}, chooseNth(0, limits))
+	}
+	{
+		limits := []int{2, 2}
+		require.Equal(t, []int{0, 1}, chooseNth(1, limits))
+	}
+	{
+		limits := []int{2, 2}
+		require.Equal(t, []int{1, 0}, chooseNth(2, limits))
+	}
+	{
+		limits := []int{2, 2}
+		require.Equal(t, []int{1, 1}, chooseNth(3, limits))
+	}
+	{
+		limits := []int{2, 2}
+		require.Equal(t, []int{0, 0}, chooseNth(4, limits))
+	}
 }
