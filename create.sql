@@ -8,7 +8,8 @@ CREATE TABLE metadata (
 CREATE TABLE sweep (
     ID serial primary key,
     Method   method not null,
-    GridIndex int
+    GridIndex int,
+    "description" text
 ) INHERITS (metadata);
 
 CREATE TABLE run (
@@ -16,7 +17,8 @@ CREATE TABLE run (
     SweepID int references sweep(id),
     CommitHash text not null,
     Command text not null,
-    Parameters json
+    Parameters json,
+    "description" text
 ) INHERITS (metadata);
 
 CREATE TABLE sweep_parameter (

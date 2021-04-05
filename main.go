@@ -15,13 +15,15 @@ import (
 )
 
 type CreateRunRequest struct {
-	CommitHash string
-	Command    string
+	CommitHash  string
+	Command     string
+	Description *string
 }
 
 type CreateSweepRequest struct {
-	Method     string
-	Parameters map[string][]json.RawMessage
+	Method      string
+	Parameters  map[string][]json.RawMessage
+	Description *string
 }
 
 type LogDocumentRequest struct {
@@ -48,7 +50,12 @@ func addRoutes(r *gin.Engine) {
 		defer tx.Rollback()
 
 		var sweepID int64
-		if err := tx.Get(&sweepID, "INSERT INTO sweep (Method) VALUES ($1) returning id", request.Method); err != nil {
+		if err := tx.Get(&sweepID, `
+		INSERT INTO sweep (
+			Method, 
+			Description
+		) VALUES ($1, $2) returning id
+		`, request.Method, request.Description); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
@@ -63,7 +70,13 @@ func addRoutes(r *gin.Engine) {
 				}
 				serializedValues = append(serializedValues, string(serializedValue))
 			}
-			if _, err := tx.Exec(`INSERT INTO sweep_parameter (SweepID, "Key", "Values") VALUES ($1, $2, $3)`, sweepID, key, pq.Array(serializedValues)); err != nil {
+			if _, err := tx.Exec(`
+			INSERT INTO sweep_parameter (
+				SweepID, 
+				"Key", 
+				"Values"
+			) VALUES ($1, $2, $3)
+			`, sweepID, key, pq.Array(serializedValues)); err != nil {
 				c.AbortWithError(http.StatusInternalServerError, err)
 				return
 			}
@@ -85,7 +98,13 @@ func addRoutes(r *gin.Engine) {
 			return
 		}
 		var runID int64
-		if err := db.Get(&runID, "INSERT INTO run (CommitHash, Command) VALUES ($1, $2) returning id", json.CommitHash, json.Command); err != nil {
+		if err := db.Get(&runID, `
+		INSERT INTO run (
+			CommitHash,
+			Command, 
+			Description
+		) VALUES ($1, $2, $3) returning id
+		`, json.CommitHash, json.Command, json.Description); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
@@ -101,7 +120,12 @@ func addRoutes(r *gin.Engine) {
 			return
 		}
 		var logID int64
-		if err := db.Get(&logID, "INSERT INTO run_log (RunID, Document) VALUES ($1, $2) RETURNING id", request.RunID, request.Document); err != nil {
+		if err := db.Get(&logID, `
+		INSERT INTO run_log (
+			RunID,
+			Document
+		) VALUES ($1, $2) RETURNING id
+		`, request.RunID, request.Document); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
