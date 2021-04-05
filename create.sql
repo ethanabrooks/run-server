@@ -1,25 +1,18 @@
 BEGIN;
 CREATE TYPE method AS ENUM ('grid', 'random');
-CREATE TABLE metadata (
-    username text,
-    project text
-);
 
 CREATE TABLE sweep (
     ID serial primary key,
     Method   method not null,
     GridIndex int,
-    "description" text
-) INHERITS (metadata);
+    Metadata json
+);
 
 CREATE TABLE run (
     ID serial primary key,
     SweepID int references sweep(id),
-    CommitHash text not null,
-    Command text not null,
-    Parameters json,
-    "description" text
-) INHERITS (metadata);
+    Metadata json
+);
 
 CREATE TABLE sweep_parameter (
     SweepID   integer not null references sweep(ID),

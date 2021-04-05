@@ -74,8 +74,7 @@ func TestMain(t *testing.T) {
 	var runID int64
 	{
 		data, err := json.Marshal(CreateRunRequest{
-			CommitHash: "asdf",
-			Command:    "thud",
+			Metadata: json.RawMessage([]byte(`{"some": "data"}`)),
 		})
 		require.NoError(t, err)
 		res, err := client.Post(server.URL+"/create-run", "application/json", bytes.NewReader(data))

@@ -15,15 +15,13 @@ import (
 )
 
 type CreateRunRequest struct {
-	CommitHash  string
-	Command     string
-	Description *string
+	Metadata json.RawMessage
 }
 
 type CreateSweepRequest struct {
-	Method      string
-	Parameters  map[string][]json.RawMessage
-	Description *string
+	Method     string
+	Parameters map[string][]json.RawMessage
+	Metadata   json.RawMessage
 }
 
 type LogDocumentRequest struct {
@@ -53,9 +51,9 @@ func addRoutes(r *gin.Engine) {
 		if err := tx.Get(&sweepID, `
 		INSERT INTO sweep (
 			Method, 
-			Description
+			Metadata
 		) VALUES ($1, $2) returning id
-		`, request.Method, request.Description); err != nil {
+		`, request.Method, request.Metadata); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
@@ -100,11 +98,9 @@ func addRoutes(r *gin.Engine) {
 		var runID int64
 		if err := db.Get(&runID, `
 		INSERT INTO run (
-			CommitHash,
-			Command, 
-			Description
-		) VALUES ($1, $2, $3) returning id
-		`, json.CommitHash, json.Command, json.Description); err != nil {
+			Metadata
+		) VALUES ($1) returning id
+		`, json.Metadata); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
