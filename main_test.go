@@ -74,6 +74,7 @@ func TestMain(t *testing.T) {
 	var runID int64
 	{
 		data, err := json.Marshal(CreateRunRequest{
+			SweepID:  &sweepID,
 			Metadata: json.RawMessage([]byte(`{"some": "data"}`)),
 		})
 		require.NoError(t, err)
@@ -101,27 +102,10 @@ func TestMain(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.StatusCode)
 
 		var response struct {
-			LogID int
+			LogID int64
 		}
 		json.NewDecoder(res.Body).Decode(&response)
 		require.NoError(t, err)
-		require.Greater(t, response.LogID, 0)
-	}
-
-	{
-		data, err := json.Marshal(IterateHyperparametersRequest{
-			SweepID: sweepID,
-		})
-		require.NoError(t, err)
-		res, err := client.Post(server.URL+"/iterate-hyperparameters", "application/json", bytes.NewReader(data))
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, res.StatusCode)
-
-		var response struct {
-			Parameters map[string]json.RawMessage
-		}
-		json.NewDecoder(res.Body).Decode(&response)
-		require.NoError(t, err)
-		log.Printf("%q", response)
+		require.Greater(t, response.LogID, int64(0))
 	}
 }

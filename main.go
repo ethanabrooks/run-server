@@ -15,6 +15,7 @@ import (
 )
 
 type CreateRunRequest struct {
+	SweepID  *int64
 	Metadata json.RawMessage
 }
 
@@ -28,7 +29,6 @@ type LogDocumentRequest struct {
 	RunID    int64
 	Document json.RawMessage
 }
-type IterateHyperparametersRequest struct{ SweepID int64 }
 
 func addRoutes(r *gin.Engine) {
 	r.POST("/create-sweep", func(c *gin.Context) {
@@ -90,23 +90,89 @@ func addRoutes(r *gin.Engine) {
 	})
 	r.POST("/create-run", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
-		var json CreateRunRequest
-		if err := c.BindJSON(&json); err != nil {
+		var request CreateRunRequest
+		if err := c.BindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		var runID int64
-		if err := db.Get(&runID, `
-		INSERT INTO run (
-			Metadata
-		) VALUES ($1) returning id
-		`, json.Metadata); err != nil {
+
+		tx, err := db.Beginx()
+		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		c.JSON(200, gin.H{
-			"RunID": runID,
-		})
+		defer tx.Rollback()
+
+		var runID int64
+		if err := tx.Get(&runID, `
+		INSERT INTO run (
+			Metadata
+		) VALUES ($1) returning id
+		`, request.Metadata); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		if request.SweepID == nil {
+			c.JSON(200, gin.H{
+				"RunID": runID,
+			})
+		} else {
+			var sweep struct {
+				Method         string
+				GridIndex      pq.Int32Array
+				ParametersJSON string
+			}
+			if err := tx.Get(&sweep, `
+			SELECT
+				Method,
+				GridIndex,
+				JSON_OBJECT_AGG("Key", "Values") AS ParametersJSON
+			FROM sweep
+			JOIN sweep_parameter ON SweepID = sweep.ID
+			WHERE sweep.ID = $1
+			GROUP BY sweep.ID
+			`, request.SweepID); err != nil {
+				c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+
+			var parameters map[string][]json.RawMessage
+			if err := json.Unmarshal([]byte(sweep.ParametersJSON), &parameters); err != nil {
+				c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+
+			var parameterNames []string
+			for name := range parameters {
+				parameterNames = append(parameterNames, name)
+			}
+			sort.Strings(parameterNames)
+
+			chosenParameters := make(map[string]json.RawMessage)
+
+			if sweep.Method == "grid" {
+				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("not implemented"))
+				return
+			} else if sweep.Method == "random" {
+				for key, values := range parameters {
+					chosenParameters[key] = values[rand.Intn(len(values))]
+				}
+			} else {
+				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("invalid method %q", sweep.Method))
+				return
+			}
+
+			if err := tx.Commit(); err != nil {
+				c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"RunID":      runID,
+				"Parameters": chosenParameters,
+			})
+
+		}
 	})
 	r.POST("/log-document", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
@@ -127,75 +193,6 @@ func addRoutes(r *gin.Engine) {
 		}
 		c.JSON(200, gin.H{
 			"LogID": logID,
-		})
-	})
-	r.POST("/iterate-hyperparameters", func(c *gin.Context) {
-		db := c.MustGet("db").(*sqlx.DB)
-		var request IterateHyperparametersRequest
-		if err := c.ShouldBindJSON(&request); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		tx, err := db.Beginx()
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		defer tx.Rollback()
-
-		var sweep struct {
-			Method         string
-			GridIndex      pq.Int32Array
-			ParametersJSON string
-		}
-		if err := tx.Get(&sweep, `
-			SELECT
-				Method,
-				GridIndex,
-				JSON_OBJECT_AGG("Key", "Values") AS ParametersJSON
-			FROM sweep
-			JOIN sweep_parameter ON SweepID = sweep.ID
-			WHERE sweep.ID = $1
-			GROUP BY sweep.ID
-		`, request.SweepID); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-
-		var parameters map[string][]json.RawMessage
-		if err := json.Unmarshal([]byte(sweep.ParametersJSON), &parameters); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-
-		var parameterNames []string
-		for name := range parameters {
-			parameterNames = append(parameterNames, name)
-		}
-		sort.Strings(parameterNames)
-
-		chosenParameters := make(map[string]json.RawMessage)
-
-		if sweep.Method == "grid" {
-			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("not implemented"))
-			return
-		} else if sweep.Method == "random" {
-			for key, values := range parameters {
-				chosenParameters[key] = values[rand.Intn(len(values))]
-			}
-		} else {
-			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("invalid method %q", sweep.Method))
-			return
-		}
-
-		if err := tx.Commit(); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-
-		c.JSON(200, gin.H{
-			"Parameters": chosenParameters,
 		})
 	})
 }
