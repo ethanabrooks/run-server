@@ -1,9 +1,6 @@
 BEGIN;
-CREATE TYPE method AS ENUM ('grid', 'random');
-
 CREATE TABLE sweep (
     ID serial primary key,
-    Method   method not null,
     GridIndex int,
     Metadata json
 );

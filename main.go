@@ -55,10 +55,9 @@ func addRoutes(r *gin.Engine) {
 		var sweepID int64
 		if err := tx.Get(&sweepID, `
 		INSERT INTO sweep (
-			Method, 
 			Metadata
-		) VALUES ($1, $2) returning id
-		`, request.Method, request.Metadata); err != nil {
+		) VALUES ($1) returning id
+		`, request.Metadata); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
@@ -123,13 +122,11 @@ func addRoutes(r *gin.Engine) {
 			})
 		} else {
 			var sweep struct {
-				Method         string
 				GridIndex      pq.Int32Array
 				ParametersJSON string
 			}
 			if err := tx.Get(&sweep, `
 			SELECT
-				Method,
 				GridIndex,
 				JSON_OBJECT_AGG("Key", "Values") AS ParametersJSON
 			FROM sweep

@@ -38,7 +38,6 @@ func TestMain(t *testing.T) {
 	var sweepID int64
 	{
 		data, err := json.Marshal(CreateSweepRequest{
-			Method: "random",
 			Parameters: map[string][]json.RawMessage{
 				"param1": []json.RawMessage{
 					json.RawMessage([]byte(`{"foo1.1": "bar1.1"}`)),
