@@ -21,6 +21,6 @@ CREATE TABLE sweep_parameter (
 CREATE TABLE run_log (
     ID serial primary key,
     RunId int not null references run(id),
-    Document json not null
+    Log json not null
 );
 COMMIT;

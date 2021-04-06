@@ -25,9 +25,9 @@ type CreateSweepRequest struct {
 	Metadata   json.RawMessage
 }
 
-type LogDocumentRequest struct {
+type CreateLogRequest struct {
 	RunID    int64
-	Document json.RawMessage
+	log json.RawMessage
 }
 
 func addRoutes(r *gin.Engine) {
@@ -200,9 +200,9 @@ func addRoutes(r *gin.Engine) {
 		}
 
 	})
-	r.POST("/log-document", func(c *gin.Context) {
+	r.POST("/create-log", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
-		var request LogDocumentRequest
+		var request CreateLogRequest
 		if err := c.ShouldBindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -211,9 +211,9 @@ func addRoutes(r *gin.Engine) {
 		if err := db.Get(&logID, `
 		INSERT INTO run_log (
 			RunID,
-			Document
+			log
 		) VALUES ($1, $2) RETURNING id
-		`, request.RunID, request.Document); err != nil {
+		`, request.RunID, request.log); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
