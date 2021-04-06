@@ -119,9 +119,10 @@ func addRoutes(r *gin.Engine) {
 		var runID int64
 		if err := tx.Get(&runID, `
 		INSERT INTO run (
-			Metadata
-		) VALUES ($1) returning id
-		`, request.Metadata); err != nil {
+			Metadata,
+      SweepID
+		) VALUES ($1, $2) returning id
+		`, request.Metadata, request.SweepID); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
