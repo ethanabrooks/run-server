@@ -39,17 +39,17 @@ func TestMain(t *testing.T) {
 	{
 		data, err := json.Marshal(CreateSweepRequest{
 			Parameters: map[string][]json.RawMessage{
-				"param1": []json.RawMessage{
+				"param1": {
 					json.RawMessage([]byte(`{"foo1.1": "bar1.1"}`)),
 					json.RawMessage([]byte(`{"foo1.2": "bar1.2"}`)),
 					json.RawMessage([]byte(`{"foo1.3": "bar1.3"}`)),
 				},
-				"param2": []json.RawMessage{
+				"param2": {
 					json.RawMessage([]byte(`{"foo2.1": "bar2.1"}`)),
 					json.RawMessage([]byte(`{"foo2.2": "bar2.2"}`)),
 					json.RawMessage([]byte(`{"foo2.3": "bar2.3"}`)),
 				},
-				"param3": []json.RawMessage{
+				"param3": {
 					json.RawMessage([]byte(`{"foo3.1": "bar3.1"}`)),
 					json.RawMessage([]byte(`{"foo3.2": "bar3.2"}`)),
 					json.RawMessage([]byte(`{"foo3.3": "bar3.3"}`)),
@@ -135,21 +135,9 @@ func TestMain(t *testing.T) {
 	{
 		limits := []int{2, 2}
 		require.Equal(t, []int{0, 0}, chooseNth(0, limits))
-	}
-	{
-		limits := []int{2, 2}
 		require.Equal(t, []int{0, 1}, chooseNth(1, limits))
-	}
-	{
-		limits := []int{2, 2}
 		require.Equal(t, []int{1, 0}, chooseNth(2, limits))
-	}
-	{
-		limits := []int{2, 2}
 		require.Equal(t, []int{1, 1}, chooseNth(3, limits))
-	}
-	{
-		limits := []int{2, 2}
 		require.Equal(t, []int{0, 0}, chooseNth(4, limits))
 	}
 }
