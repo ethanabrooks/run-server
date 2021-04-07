@@ -18,9 +18,15 @@ cat create.sql | psql -U postgres -p 5432 -h localhost
 ```
 Run tests:
 ```shell_session
-go test
+docker-compose -f test.yml up --build
 ```
-If necessary destroy database:
+Make sure to run
+```shell_session
+docker-compose down --remove-orphans 
+```
+after each test or subsequent tests will fail.
+
+To destroy the database:
 ```shell_session
 cat drop.sql | psql -U postgres -p 5432 -h localhost 
 ```

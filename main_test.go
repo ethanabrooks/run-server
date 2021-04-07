@@ -19,7 +19,10 @@ func TestMain(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	db, err := sqlx.Connect("postgres",
-		fmt.Sprintf("user=postgres dbname=postgres password=%s port=5432 host=localhost sslmode=disable", os.Getenv("PGPASSWORD")))
+		fmt.Sprintf("user=postgres dbname=postgres password=%s port=5432 host=%s sslmode=disable",
+			os.Getenv("PGPASSWORD"),
+			os.Getenv("PGHOST"),
+		))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -87,7 +90,7 @@ func TestMain(t *testing.T) {
 		}
 		json.NewDecoder(res.Body).Decode(&response)
 		require.NoError(t, err)
-		require.Greater(t, response.RunID, int64(0))
+		require.Equal(t, int64(1), response.RunID)
 		require.Equal(t, 0, len(response.Parameters))
 	}
 
@@ -107,7 +110,7 @@ func TestMain(t *testing.T) {
 		}
 		json.NewDecoder(res.Body).Decode(&response)
 		require.NoError(t, err)
-		require.Greater(t, response.RunID, int64(1))
+		require.Equal(t, int64(2), response.RunID)
 		runID = response.RunID
 	}
 

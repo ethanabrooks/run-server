@@ -281,7 +281,7 @@ func addRoutes(r *gin.Engine) {
 
 func main() {
 	db, err := sqlx.Connect("postgres",
-		fmt.Sprintf("user=postgres dbname=postgres password=%s port=5432 host=localhost sslmode=disable", os.Getenv("PGPASSWORD")))
+		fmt.Sprintf("user=postgres dbname=postgres password=%s port=5432 host=%s sslmode=disable", os.Getenv("PGPASSWORD"), os.Getenv("PGHOST")))
 	if err != nil {
 		log.Fatalln(err)
 	}
