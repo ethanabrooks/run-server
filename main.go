@@ -216,39 +216,11 @@ func addRoutes(r *gin.Engine) {
 			return
 		}
 
-		tx, err := db.Beginx()
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		defer tx.Rollback()
-
-		var rawMetadata json.RawMessage
-		if err := tx.Get(&rawMetadata, `
-		SELECT Metadata FROM run WHERE $1 = ID
-		`, request.RunID); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		metadata := map[string]interface{}{}
-		json.Unmarshal([]byte(rawMetadata), &metadata)
-
-		newMetadata := map[string]interface{}{}
-		json.Unmarshal([]byte(request.Metadata), &newMetadata)
-
-		for key, value := range newMetadata {
-			metadata[key] = value
-		}
-
-		serializedMetadata, err := json.Marshal(metadata)
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-
-		if _, err := tx.Exec(`
-			UPDATE run SET metadata = $1 WHERE ID = $2
-			`, serializedMetadata, request.RunID); err != nil {
+		var metadata json.RawMessage
+		if err := db.Get(&metadata, `
+		UPDATE run SET metadata = (metadata::jsonb || $1::jsonb)::json 
+		WHERE ID = $2 RETURNING metadata
+		`, request.Metadata, request.RunID); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
