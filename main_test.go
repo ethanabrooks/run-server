@@ -73,6 +73,26 @@ func TestMain(t *testing.T) {
 	var runID int64
 	{
 		data, err := json.Marshal(CreateRunRequest{
+			SweepID:  nil,
+			Metadata: json.RawMessage([]byte(`{"some": "data"}`)),
+		})
+		require.NoError(t, err)
+		res, err := client.Post(server.URL+"/create-run", "application/json", bytes.NewReader(data))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		var response struct {
+			RunID      int64
+			Parameters map[string]json.RawMessage
+		}
+		json.NewDecoder(res.Body).Decode(&response)
+		require.NoError(t, err)
+		require.Greater(t, response.RunID, int64(0))
+		require.Equal(t, 0, len(response.Parameters))
+	}
+
+	{
+		data, err := json.Marshal(CreateRunRequest{
 			SweepID:  &sweepID,
 			Metadata: json.RawMessage([]byte(`{"some": "data"}`)),
 		})
@@ -82,11 +102,12 @@ func TestMain(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.StatusCode)
 
 		var response struct {
-			RunID int64
+			RunID      int64
+			Parameters map[string]json.RawMessage
 		}
 		json.NewDecoder(res.Body).Decode(&response)
 		require.NoError(t, err)
-		require.Greater(t, response.RunID, int64(0))
+		require.Greater(t, response.RunID, int64(1))
 		runID = response.RunID
 	}
 

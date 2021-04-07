@@ -120,17 +120,14 @@ func addRoutes(r *gin.Engine) {
 		if err := tx.Get(&runID, `
 		INSERT INTO run (
 			Metadata,
-      SweepID
+			SweepID
 		) VALUES ($1, $2) returning id
 		`, request.Metadata, request.SweepID); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		if request.SweepID == nil {
-			c.JSON(200, gin.H{
-				"RunID": runID,
-			})
-		} else {
+		chosenParameters := make(map[string]json.RawMessage)
+		if request.SweepID != nil {
 			var sweep struct {
 				GridIndex      *int64
 				ParametersJSON string
@@ -182,21 +179,26 @@ func addRoutes(r *gin.Engine) {
 				}
 
 			}
-			chosenParameters := make(map[string]json.RawMessage)
 			for key, choice := range choices {
 				chosenParameters[key] = parameters[key][choice]
 			}
-
-			c.JSON(200, gin.H{
-				"RunID":      runID,
-				"Parameters": chosenParameters,
-			})
 
 		}
 
 		if err := tx.Commit(); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
+		}
+
+		if request.SweepID == nil {
+			c.JSON(200, gin.H{
+				"RunID": runID,
+			})
+		} else {
+			c.JSON(200, gin.H{
+				"RunID":      runID,
+				"Parameters": chosenParameters,
+			})
 		}
 
 	})
