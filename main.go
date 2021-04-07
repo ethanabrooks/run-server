@@ -25,6 +25,11 @@ type CreateSweepRequest struct {
 	Metadata   json.RawMessage
 }
 
+type UpdateMetadataRequest struct {
+	RunID    int64
+	Metadata json.RawMessage
+}
+
 type AddLogRequest struct {
 	RunID int64
 	Log   json.RawMessage
@@ -61,7 +66,7 @@ func addRoutes(r *gin.Engine) {
 		INSERT INTO sweep (
 			gridIndex,
 			Metadata
-		) VALUES ($1, $2) returning id
+		) VALUES ($1, $2) returning ID
 		`, gridIndex, request.Metadata); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -121,12 +126,13 @@ func addRoutes(r *gin.Engine) {
 		INSERT INTO run (
 			Metadata,
 			SweepID
-		) VALUES ($1, $2) returning id
+		) VALUES ($1, $2) returning ID
 		`, request.Metadata, request.SweepID); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		chosenParameters := make(map[string]json.RawMessage)
+
+		chosenParameters := make(map[string]json.RawMessage) // does this default to nil?
 		if request.SweepID != nil {
 			var sweep struct {
 				GridIndex      *int64
@@ -202,6 +208,51 @@ func addRoutes(r *gin.Engine) {
 		}
 
 	})
+	r.POST("/update-metadata", func(c *gin.Context) {
+		db := c.MustGet("db").(*sqlx.DB)
+		var request UpdateMetadataRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		tx, err := db.Beginx()
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		defer tx.Rollback()
+
+		var rawMetadata json.RawMessage
+		if err := tx.Get(&rawMetadata, `
+		SELECT Metadata FROM run WHERE $1 = ID RETURNING Metadata
+		`, request.RunID); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		metadata := map[string]interface{}{}
+		json.Unmarshal([]byte(rawMetadata), &metadata)
+
+		newMetadata := map[string]interface{}{}
+		json.Unmarshal([]byte(request.Metadata), &newMetadata)
+
+		for key, value := range newMetadata {
+			metadata[key] = value
+		}
+
+		serializedMetadata, err := json.Marshal(metadata)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		if _, err := tx.Exec(`
+			UPDATE run SET metadata = $1 WHERE ID = $2
+			`, serializedMetadata, request.RunID); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+	})
 	r.POST("/add-log", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
 		var request AddLogRequest
@@ -214,7 +265,7 @@ func addRoutes(r *gin.Engine) {
 		INSERT INTO run_log (
 			RunID,
 			Log
-		) VALUES ($1, $2) RETURNING id
+		) VALUES ($1, $2) RETURNING ID
 		`, request.RunID, request.Log); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
