@@ -25,7 +25,7 @@ type CreateSweepRequest struct {
 	Metadata   json.RawMessage
 }
 
-type CreateLogRequest struct {
+type AddLogRequest struct {
 	RunID int64
 	Log   json.RawMessage
 }
@@ -200,9 +200,9 @@ func addRoutes(r *gin.Engine) {
 		}
 
 	})
-	r.POST("/create-log", func(c *gin.Context) {
+	r.POST("/add-log", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
-		var request CreateLogRequest
+		var request AddLogRequest
 		if err := c.ShouldBindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
