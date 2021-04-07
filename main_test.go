@@ -112,6 +112,31 @@ func TestMain(t *testing.T) {
 	}
 
 	{
+		data, err := json.Marshal(UpdateMetadataRequest{
+			RunID:    runID,
+			Metadata: json.RawMessage([]byte(`{"new": "data"}`)),
+		})
+		require.NoError(t, err)
+		res, err := client.Post(server.URL+"/update-metadata", "application/json", bytes.NewReader(data))
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		var response struct {
+			Metadata map[string]json.RawMessage
+		}
+		json.NewDecoder(res.Body).Decode(&response)
+		require.NoError(t, err)
+		{
+			_, ok := response.Metadata["some"]
+			require.Equal(t, true, ok)
+		}
+		{
+			_, ok := response.Metadata["new"]
+			require.Equal(t, true, ok)
+		}
+	}
+
+	{
 		data, err := json.Marshal(AddLogRequest{
 			RunID: runID,
 			Log:   json.RawMessage([]byte(`{"key": "value"}`)),
@@ -128,12 +153,14 @@ func TestMain(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, response.LogID, int64(0))
 	}
+
 	{
 		limits := []int{2, 1}
 		require.Equal(t, []int{0, 0}, chooseNth(0, limits))
 		require.Equal(t, []int{1, 0}, chooseNth(1, limits))
 		require.Equal(t, []int{0, 0}, chooseNth(2, limits))
 	}
+
 	{
 		limits := []int{2, 2}
 		require.Equal(t, []int{0, 0}, chooseNth(0, limits))

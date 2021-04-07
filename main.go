@@ -225,7 +225,7 @@ func addRoutes(r *gin.Engine) {
 
 		var rawMetadata json.RawMessage
 		if err := tx.Get(&rawMetadata, `
-		SELECT Metadata FROM run WHERE $1 = ID RETURNING Metadata
+		SELECT Metadata FROM run WHERE $1 = ID
 		`, request.RunID); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -252,6 +252,9 @@ func addRoutes(r *gin.Engine) {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
+		c.JSON(200, gin.H{
+			"Metadata": metadata,
+		})
 	})
 	r.POST("/add-log", func(c *gin.Context) {
 		db := c.MustGet("db").(*sqlx.DB)
