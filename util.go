@@ -11,12 +11,13 @@ func _chooseNth(n *int, choices []int, limits []int) {
 		if *n == 0 {
 			return
 		}
-		choices[0]++
+		choices[0] = (choices[0] + 1)
 		if choices[0] == limits[0] {
-			choices[0] = 0
-			return
+			choices[0] = 0 // wrap modulo
+			return         // no charge
+		} else {
+			*n-- // charge for other updates
 		}
-		*n--
 	}
 }
 
@@ -24,6 +25,7 @@ func chooseNth(n int, limits []int) []int {
 	choices := make([]int, len(limits))
 	for n > 0 {
 		_chooseNth(&n, choices, limits)
+		n-- // account for no wrap-around charge
 	}
 	return choices
 }
