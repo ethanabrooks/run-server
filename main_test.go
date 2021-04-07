@@ -91,12 +91,12 @@ func TestMain(t *testing.T) {
 	}
 
 	{
-		data, err := json.Marshal(LogDocumentRequest{
-			RunID:    runID,
-			Document: json.RawMessage([]byte(`{"key": "value"}`)),
+		data, err := json.Marshal(CreateLogRequest{
+			RunID: runID,
+			Log:   json.RawMessage([]byte(`{"key": "value"}`)),
 		})
 		require.NoError(t, err)
-		res, err := client.Post(server.URL+"/log-document", "application/json", bytes.NewReader(data))
+		res, err := client.Post(server.URL+"/create-log", "application/json", bytes.NewReader(data))
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, res.StatusCode)
 

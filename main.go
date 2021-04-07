@@ -26,8 +26,8 @@ type CreateSweepRequest struct {
 }
 
 type CreateLogRequest struct {
-	RunID    int64
-	log json.RawMessage
+	RunID int64
+	Log   json.RawMessage
 }
 
 func addRoutes(r *gin.Engine) {
@@ -211,9 +211,9 @@ func addRoutes(r *gin.Engine) {
 		if err := db.Get(&logID, `
 		INSERT INTO run_log (
 			RunID,
-			log
+			Log
 		) VALUES ($1, $2) RETURNING id
-		`, request.RunID, request.log); err != nil {
+		`, request.RunID, request.Log); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
