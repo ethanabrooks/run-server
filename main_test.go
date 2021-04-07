@@ -130,7 +130,9 @@ func TestMain(t *testing.T) {
 	}
 	{
 		limits := []int{2, 1}
+		require.Equal(t, []int{0, 0}, chooseNth(0, limits))
 		require.Equal(t, []int{1, 0}, chooseNth(1, limits))
+		require.Equal(t, []int{0, 0}, chooseNth(2, limits))
 	}
 	{
 		limits := []int{2, 2}
